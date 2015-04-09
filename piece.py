@@ -38,7 +38,7 @@ class Piece(object):
     def get_color(self):
         return self.color
     def get_code(self):
-        if self.color == "white":
+        if self.color == 0:
             return "w"+self.code
         else:
             return "b"+self.code
@@ -70,7 +70,7 @@ class Queen(Piece):
             return False
         x1,y1 = start
         x2,y2 = end
-        if (x2-x1)==0 or (y2-y1)==0 or (abs(x2-x1) == 1 and abs(x2-x1)==abs(y2-y1)):
+        if (x2-x1)==0 or (y2-y1)==0 or (abs(x2-x1)==abs(y2-y1)):
             return True
         else:
             return False
@@ -86,8 +86,8 @@ class Queen(Piece):
             moves = [(x,y1) for x in xrange(x1,x2+movement,movement)]
         else:
             slope = (y2-y1)/(x2-x1)
-            movement = 1 if x2>=x1 else -1
-            moves = [(x,slope*x) for x in xrange(x1,x2+movement,movement)]
+            movement = 1 if y2>=y1 else -1
+            moves = [(x1+y/slope, y1+y) for y in xrange(0,y2-y1+movement,movement)]
         return moves
 
 class Rook(Piece):
@@ -157,16 +157,18 @@ class Bishop(Piece):
 class Pawn(Piece):
     def __init__(self, square, pawn_color):
         super(Pawn, self).__init__(square, pawn_color)
-        self.name = "White pawn"
+        # print pawn_color
+        self.name = "White pawn" if pawn_color == 0 else "Black pawn"
         self.moved = 0
-        self.color_code = -1 if pawn_color == "white" else 1
+        self.color_code = -1 if pawn_color == 0 else 1
         self.code = "p"
     def _can_move(self, start, end):
+        # print start,end,self.color_code
         if start == end:
             return False
         x1,y1 = start
         x2,y2 = end
-        if x1==x2 and ( (y2==y1+self.color_code and self.moved) or (y2==y1+2*self.color_code and not self.moved) ):
+        if y1==y2 and ( (x2==x1+self.color_code) or (x2==x1+2*self.color_code and not self.moved) ):
             return True
         else:
             return False
@@ -175,14 +177,14 @@ class Pawn(Piece):
             return False
         x1,y1 = start
         x2,y2 = end
-        if x2==x1+1 and y2==y1+self.color_code:
+        if (y2==y1+1 or y2==y1-1) and x2==x1+self.color_code:
             return True
         else:
             return False
     def _moves(self, start, end):
         x1,y1 = start
         x2,y2 = end
-        return [(x1,y) for y in xrange(y1,y2+self.color_code,type)]
+        return [(x,y1) for x in xrange(x1,x2+self.color_code,self.color_code)]
     def _amoves(self, start, end):
         x1,y1 = start
         x2,y2 = end
@@ -198,143 +200,6 @@ class Pawn(Piece):
     def has_moved(self):
         return self.moved
 
-class TestKing(unittest.TestCase):
-    def setUp(self):
-        self.piece = King(Square(0,0,"white"), "white")
-    def test_move(self):
-        # Move to invalid point
-        possible, moves = self.piece.move((3,1))
-        self.assertEqual(possible, False)
-        self.assertEqual(moves, [])
-        # Move to corner +ve
-        possible, moves = self.piece.move((1,1))
-        self.assertEqual(possible, True)
-        self.assertEqual(moves, [(0,0),(1,1)])
-        # Move to same point
-        possible, moves = self.piece.move((0,0))
-        self.assertEqual(possible, False)
-        self.assertEqual(moves, [])
-    def test_name(self):
-        self.assertEqual(self.piece.get_name(), "King")
-
-class TestQueen(unittest.TestCase):
-    def setUp(self):
-        self.piece = Queen(Square(0,0,"white"), "white")
-    def test_move(self):
-        # Invalid move
-        possible, moves = self.piece.move((1,3))
-        self.assertEqual(possible, False)
-        self.assertEqual(moves, [])
-        # Corner move
-        possible, moves = self.piece.move((1,1))
-        self.assertEqual(possible, True)
-        self.assertEqual(moves, [(0,0),(1,1)])
-        # Corner move back
-        possible, moves = self.piece.move((-1,-1))
-        self.assertEqual(possible, True)
-        self.assertEqual(moves, [(0,0),(-1,-1)])
-        # Horizontal move
-        possible, moves = self.piece.move((0,2))
-        self.assertEqual(possible, True)
-        self.assertEqual(moves, [(0,0),(0,1),(0,2)])
-        # Vertical move
-        possible, moves = self.piece.move((2,0))
-        self.assertEqual(possible, True)
-        self.assertEqual(moves, [(0,0),(1,0),(2,0)])
-        # Vertical move -ve
-        possible, moves = self.piece.move((-2,0))
-        self.assertEqual(possible, True)
-        self.assertEqual(moves, [(0,0),(-1,0),(-2,0)])
-        # Move to same location
-        possible, moves = self.piece.move((0,0))
-        self.assertEqual(possible, False)
-        self.assertEqual(moves, [])
-    def test_name(self):
-        self.assertEqual(self.piece.get_name(), "Queen")
-
-class TestRook(unittest.TestCase):
-    def setUp(self):
-        self.piece = Rook(Square(0,0,"white"), "white")
-    def test_move(self):
-        # Invalid move
-        possible, moves = self.piece.move((1,1))
-        self.assertEqual(possible, False)
-        self.assertEqual(moves, [])
-        # Horizontal move +ve
-        possible, moves = self.piece.move((0,2))
-        self.assertEqual(possible, True)
-        self.assertEqual(moves, [(0,0),(0,1),(0,2)])
-        # Horizontal move -ve
-        possible, moves = self.piece.move((0,-2))
-        self.assertEqual(possible, True)
-        self.assertEqual(moves, [(0,0),(0,-1),(0,-2)])
-        # Vertical move
-        possible, moves = self.piece.move((2,0))
-        self.assertEqual(possible, True)
-        self.assertEqual(moves, [(0,0),(1,0),(2,0)])
-        # Vertical move -ve
-        possible, moves = self.piece.move((-2,0))
-        self.assertEqual(possible, True)
-        self.assertEqual(moves, [(0,0),(-1,0),(-2,0)])
-        # Move to same location
-        possible, moves = self.piece.move((0,0))
-        self.assertEqual(possible, False)
-        self.assertEqual(moves, [])
-    def test_name(self):
-        self.assertEqual(self.piece.get_name(), "Rook")
-
-class TestKnight(unittest.TestCase):
-    def setUp(self):
-        self.piece = Knight(Square(2,2,"white"), "white")
-    def test_move(self):
-        # Invalid moves
-        possible, moves = self.piece.move((3,3))
-        self.assertEqual(possible, False)
-        self.assertEqual(moves, [])
-        possible, moves = self.piece.move((31,31))
-        self.assertEqual(possible, False)
-        self.assertEqual(moves, [])
-        possible, moves = self.piece.move((3,5))
-        self.assertEqual(possible, False)
-        self.assertEqual(moves, [])
-        # Top right 1
-        possible, moves = self.piece.move((0,3))
-        self.assertEqual(possible, True)
-        self.assertEqual(moves, [(2,2),(0,3)])
-        # Top right 2
-        possible, moves = self.piece.move((1,4))
-        self.assertEqual(possible, True)
-        self.assertEqual(moves, [(2,2),(1,4)])
-        # Bottom right 1
-        possible, moves = self.piece.move((4,3))
-        self.assertEqual(possible, True)
-        self.assertEqual(moves, [(2,2),(4,3)])
-        # Bottom right 2
-        possible, moves = self.piece.move((3,4))
-        self.assertEqual(possible, True)
-        self.assertEqual(moves, [(2,2),(3,4)])
-        # Top left 1
-        possible, moves = self.piece.move((0,1))
-        self.assertEqual(possible, True)
-        self.assertEqual(moves, [(2,2),(0,1)])
-        # Top left 2
-        possible, moves = self.piece.move((1,0))
-        self.assertEqual(possible, True)
-        self.assertEqual(moves, [(2,2),(1,0)])
-        # Bottom left 1
-        possible, moves = self.piece.move((4,1))
-        self.assertEqual(possible, True)
-        self.assertEqual(moves, [(2,2),(4,1)])
-        # Bottom left 2
-        possible, moves = self.piece.move((3,0))
-        self.assertEqual(possible, True)
-        self.assertEqual(moves, [(2,2),(3,0)])
-        # Move to same location
-        possible, moves = self.piece.move((0,0))
-        self.assertEqual(possible, False)
-        self.assertEqual(moves, [])
-    def test_name(self):
-        self.assertEqual(self.piece.get_name(), "Knight")
-
 if __name__=="__main__":
+    from unittest_piece import *
     unittest.main()
